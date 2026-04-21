@@ -3,10 +3,15 @@ package com.report.module.im.init;
 import com.report.common.util.cache.Caches;
 import com.report.module.im.config.ImProperties;
 import com.report.module.im.constants.ImCacheKeysName;
+import com.report.module.im.constants.ImDictTypeConstants;
+import com.report.module.im.pojo.bo.ImTopicInfoBO;
 import com.report.module.im.service.ImAlarmUrlModuleService;
+import com.report.module.im.service.ImSysDictService;
 import jakarta.annotation.Resource;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 初始化配置
@@ -16,6 +21,9 @@ public class ImInitRunner implements CommandLineRunner {
 
     @Resource
     private ImAlarmUrlModuleService imAlarmUrlModuleService;
+
+    @Resource
+    private ImSysDictService imSysDictService;
 
     @Resource
     private ImProperties imPathProperties;
@@ -40,7 +48,17 @@ public class ImInitRunner implements CommandLineRunner {
         Caches.set(ImCacheKeysName.S2_PATH, imPathProperties.getPath().getS2Path());
         Caches.set(ImCacheKeysName.JS2_PATH, imPathProperties.getPath().getJs2Path());
         // 落盘标准缓存
+        String standard = imSysDictService.getValueByType(ImDictTypeConstants.INTRANET_DATE_TYPE);
+        Caches.set(ImCacheKeysName.STORAGE_STANDARD, ImDictTypeConstants.INTRANET_DATE_TYPE_ON.equals(standard));
+
         // Kafka topic 缓存
+        List<ImTopicInfoBO> allTopics = imAlarmUrlModuleService.getAllTopicInfo();
+        Caches.set(ImCacheKeysName.DATA_TOPICS, allTopics.stream()
+                .filter(t -> ImDictTypeConstants.DATA_TYPE_DATA.equals(t.dataType()))
+                .toList());
+        Caches.set(ImCacheKeysName.FILE_TOPICS, allTopics.stream()
+                .filter(t -> ImDictTypeConstants.DATA_TYPE_FILE.equals(t.dataType()))
+                .toList());
 
     }
 }
