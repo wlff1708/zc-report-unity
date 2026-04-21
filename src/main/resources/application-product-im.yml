@@ -1,0 +1,136 @@
+# ===================================================================
+# 产品形态 接入口检测IM(interface monitor) 配置
+# ===================================================================
+
+# ===== 公共配置 (始终加载) =====
+spring:
+  task:
+    scheduling:
+      pool:
+        size: 20
+  servlet:
+    multipart:
+      max-file-size: 1024MB
+      max-request-size: 1024MB
+  data:
+    redis:
+      # 连接超时
+      # 数据库索引
+      database: 0
+      # Lettuce 连接池配置
+      lettuce:
+        pool:
+          # 最大活跃连接数
+          max-active: 100
+          # 最大空闲连接数
+          max-idle: 50
+          # 最小空闲连接数
+          min-idle: 10
+          # 连接耗尽时最大等待时间 (ms)
+          max-wait: -1
+  kafka:
+    # Kafka 服务器地址（多个地址用逗号分隔）
+    bootstrap-servers: 127.0.0.1:9092
+    # 消费者配置
+    consumer:
+      # 消费者组ID
+      group-id: zcenter-consumer-group
+      # 指定消息key和value的编码方式
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # 一次最多拉取20条（默认为100条，如果调大，要研究session-timeout, heartbeat-interval,fetch-max-wait关系）
+      max-poll-records: 20
+      # 关闭提交偏移量，改为手动
+      enable-auto-commit: false
+      # 未找到偏移量时的策略：earliest(从头开始)/latest(从最新开始)
+      auto-offset-reset: earliest
+      # 拉取如果不够10条，最多等待2秒(默认为5秒)
+      fetch-max-wait: 2000
+    # 生产者配置
+    producer:
+      # 消息发送确认机制
+      # 0: 不等待确认（最快，可能丢消息）
+      # 1: 等待主节点确认（平衡）
+      # all: 等待所有副本确认（最可靠）
+      acks: 1
+      # 失败重试次数
+      retries: 2
+      # 批量大小：调整到 1MB，适配大消息场景
+      batch-size: 1048576
+      # 缓冲区：增加到 64MB，避免生产者阻塞
+      buffer-memory: 33554432
+      # 指定消息key和value的编码方式
+      key-serializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-serializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        # 设置发送延迟时间，如果设置时间没有达到batch-size，依然发送消息给kafka
+        linger.ms: 200
+        # 发送缓冲区：适配大消息()
+        send.buffer.bytes: 262144
+        # 接收缓冲区
+        receive.buffer.bytes: 262144
+        # 最大请求大小：调整到 10MB 上限
+        max.request.size: 10485760
+    # 监听器配置
+    listener:
+      ack-mode: MANUAL
+      type: batch
+      poll-timeout: 3000
+
+# 日志输出
+# Spring Boot 3 日志核心配置
+logging:
+  # 1. 全局日志级别（trace/debug/info/warn/error/off）
+  level:
+    root: info  # 全局默认级别
+    org.apache.kafka: warn # 降低Kafka框架日志输出级别
+  # 2. 日志输出格式（自定义控制台输出）
+  pattern:
+    # %d：时间戳  %thread：线程名  %-5level：日志级别（占5位）  %logger：类名  %msg：日志内容  %n：换行
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{200} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{200} - %msg%n"
+  # 3. 输出日志到文件（避免控制台日志丢失）
+  file:
+    name: ./logs/client.log  # 日志文件路径（当前目录下logs文件夹）
+  # 4. 日志文件滚动配置（避免文件过大）
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB  # 单个文件最大10MB
+      max-history: 7       # 保留7天的日志文件
+      total-size-cap: 100MB # 日志总大小上限
+      clean-history-on-start: true # 启动时清理旧日志
+
+# 系统自定义配置，统一配置风格：zcenter.xxx.xxx.xxx
+zcenter:
+  path:
+    tmp-path: /tmp/znidsCenter/uploadFiles/tmp
+    s3-path: /tmp/znidsCenter/uploadFiles/s3
+    s2-path: /tmp/znidsCenter/uploadFiles/s2
+    js2-path: /tmp/znidsCenter/uploadFiles/js2
+---
+# 单机
+spring:
+  config:
+    activate:
+      on-profile: deploy-single
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: 123456
+
+---
+# 集群
+spring:
+  config:
+    activate:
+      on-profile: deploy-cluster
+  data:
+    redis:
+      cluster:
+        nodes:
+          - 127.0.0.1:7000
+          - 127.0.0.1:7001
+          - 127.0.0.1:7002
+        max-redirects: 3
+      password: 123456

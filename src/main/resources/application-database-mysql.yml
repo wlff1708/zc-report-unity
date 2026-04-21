@@ -1,0 +1,74 @@
+# ===================================================================
+# MySQL 数据库配置
+# ===================================================================
+
+# ===== 公共配置 (始终加载) =====
+spring:
+  datasource:
+    # Hikari 连接池配置
+    hikari:
+      # 最小空闲连接数量
+      minimum-idle: 30
+      # 空闲连接存活最大时间，默认600000（10分钟）
+      idle-timeout: 180000
+      # 连接池最大连接数，默认是10
+      maximum-pool-size: 150
+      # 此属性控制从池返回的连接的默认自动提交行为,默认值：true
+      auto-commit: on
+      # 连接池名称
+      pool-name: MyHikariCP
+      # 此属性控制池中连接的最长生命周期，值0表示无限生命周期，默认1800000即30分钟
+      max-lifetime: 1800000
+      # 数据库连接超时时间,默认30秒，即30000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+# mybatis的配置
+mybatis-plus:
+  mapper-locations: classpath:/mapper/mysql/im/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+---
+
+# ===== 单机配置块 =====
+spring:
+  config:
+    activate:
+      on-profile: deploy-single
+  datasource:
+    dynamic:
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://127.0.0.1:3306/mc_db?characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          username: root
+          password: ENC(RFc/mXhY66/KpbwMKsLH4A==)
+        slave:
+          url: jdbc:mysql://127.0.0.1:3306/mc_db_bm?characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          username: root
+          password: ENC(RFc/mXhY66/KpbwMKsLH4A==)
+
+---
+
+# ===== 集群配置块 =====
+spring:
+  config:
+    activate:
+      on-profile: deploy-cluster
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql:replication://192.168.1.10:3306,192.168.1.11:3306/mc_db?characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          username: root
+          password: ENC(RFc/mXhY66/KpbwMKsLH4A==)
+        slave:
+          url: jdbc:mysql:replication://192.168.1.10:3306,192.168.1.11:3306/mc_db_bm?characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          username: root
+          password: ENC(RFc/mXhY66/KpbwMKsLH4A==)
+
+

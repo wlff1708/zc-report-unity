@@ -1,0 +1,20 @@
+# ===================================================================
+# 主配置文件
+# ===================================================================
+server:
+  port: 8082
+  address: 127.0.0.1
+
+# 配置文件加密
+jasypt:
+  encryptor:
+    password: mySecretKey
+    algorithm: PBEWithMD5AndDES
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator
+
+spring:
+  profiles:
+    active:
+      - product-im # 产品形态，匹配后缀yml
+      - database-mysql # 数据库类型，匹配后缀yml
+      - deploy-single # 部署方式，只作为激活条件
