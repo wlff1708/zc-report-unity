@@ -29,7 +29,7 @@ public class ImStorageUtil {
         /**
          * 告警描述文件名中的标识 key
          */
-        public static final String DESC_FILE_NAME_KEY = "_filedesc_";
+        public static final String DESC_FILE_NAME_KEY = "filedesc";
 
         /**
          * 告警消息文件名中的标识 key

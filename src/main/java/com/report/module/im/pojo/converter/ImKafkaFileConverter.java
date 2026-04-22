@@ -16,6 +16,7 @@ public interface ImKafkaFileConverter {
     @Mapping(source = "moduleType", target = "module")
     @Mapping(source = "subModuleType", target = "subModule")
     @Mapping(source = "filePath", target = "sourceFilePath")
+    @Mapping(source = "data", target = "fileDesc")
     ImFileTopicMsgBO toFileTopicMsgBO(ImKafkaListenDataDTO dto);
 
     List<ImFileTopicMsgBO> toFileTopicMsgBOList(List<ImKafkaListenDataDTO> dtoList);

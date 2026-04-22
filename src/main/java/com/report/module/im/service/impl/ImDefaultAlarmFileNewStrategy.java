@@ -8,7 +8,7 @@ import cn.hutool.crypto.SecureUtil;
 import cn.hutool.json.JSONUtil;
 import com.report.common.util.cache.Caches;
 import com.report.module.im.constants.ImCacheKeysName;
-import com.report.module.im.enums.ImAlarmRecordType;
+import com.report.module.im.enums.ImAlarmRecordTypeEnum;
 import com.report.module.im.enums.ImAlarmStorageResultEnum;
 import com.report.module.im.pojo.bo.*;
 import com.report.module.im.service.ImAlarmAllRecorderService;
@@ -104,7 +104,7 @@ public class ImDefaultAlarmFileNewStrategy extends ImDefaultAlarmFileStandardStr
                 descRecord.setDeviceId(deviceId);
                 descRecord.setAlarmId(descParseBO.alarmId());
                 descRecord.setAlarmTime(DateUtil.parseLocalDateTime(descParseBO.alarmTime()));
-                descRecord.setAlarmType(ImAlarmRecordType.DESC_FILE.getCode());
+                descRecord.setAlarmType(ImAlarmRecordTypeEnum.DESC_FILE.getCode());
                 descRecord.setModule(module);
                 descRecord.setSubModule(fileTopicMsgBO.getSubModule());
                 currentBatchdescRecordList.add(descRecord);
@@ -118,7 +118,7 @@ public class ImDefaultAlarmFileNewStrategy extends ImDefaultAlarmFileStandardStr
             String tmpDescFilePath = ImStorageUtil.buildNewAlarmDescTmpPath(basePath, module, subModule);
             File tmpDescFile = ImStorageUtil.saveFile(tmpDescFilePath, JSONUtil.toJsonStr(strorageDescList));
             // 迁移正式目录
-            String s3Dir = Path.of(s3path, module).toString();
+            String s3Dir = Path.of(s3path, module, subModule).toString();
             File s3DescFile = ImStorageUtil.moveFile(tmpDescFile, s3Dir, tmpDescFile.getName());
 
             // 描述已落盘，继续填充描述记录对象
@@ -127,6 +127,7 @@ public class ImDefaultAlarmFileNewStrategy extends ImDefaultAlarmFileStandardStr
                 descRecord.setS3FileName(s3DescFile.getName());
                 descRecord.setFileMd5(SecureUtil.md5(s3DescFile));
                 descRecord.setFileSize(ImStorageUtil.calculateFileSize(s3DescFile));
+                descRecord.setStorageResult(ImAlarmStorageResultEnum.SUCCESS.getDesc());
             });
             // 填充到描述记录对象中
             descRecordList.addAll(currentBatchdescRecordList);
@@ -147,22 +148,20 @@ public class ImDefaultAlarmFileNewStrategy extends ImDefaultAlarmFileStandardStr
         fileRecord.setFileMd5(descParseBO.md5());
         fileRecord.setTmpFileName(fileTopicMsgBO.getSourceFilePath());
         fileRecord.setAlarmTime(DateUtil.parseLocalDateTime(descParseBO.alarmTime()));
-        fileRecord.setAlarmType(ImAlarmRecordType.SOURCE_FILE.getCode());
+        fileRecord.setAlarmType(ImAlarmRecordTypeEnum.SOURCE_FILE.getCode());
         fileRecord.setModule(module);
         fileRecord.setSubModule(fileTopicMsgBO.getSubModule());
 
         // 开始告警文件落盘操作
         // 重复上传标记
         boolean repeatUpload = descParseBO.upload();
-        fileRecord.setDeviceId(ImUserAgentUtil.getDeviceId(fileTopicMsgBO.getUserAgent()));
-        // 是否重复上传，为true说明上传过，那么不需要转移,storageResult标记重复上传，为false时需要转移，但是要判断alarmFilePath文件是否存在
         if (repeatUpload) {
             fileRecord.setStorageResult(ImAlarmStorageResultEnum.REPEATED_UPLOAD.getDesc());
         } else if (StrUtil.isBlank(fileTopicMsgBO.getSourceFilePath()) || !new File(fileTopicMsgBO.getSourceFilePath()).exists()) {
             fileRecord.setStorageResult(ImAlarmStorageResultEnum.FILE_NOT_EXIST.getDesc());
         } else {
             // 告警临时文件存在，迁移到 S3 正式目录
-            String s3Dir = Path.of(Caches.get(ImCacheKeysName.S3_PATH), fileTopicMsgBO.getModule()).toString();
+            String s3Dir = Path.of(Caches.get(ImCacheKeysName.S3_PATH), fileTopicMsgBO.getModule(), fileTopicMsgBO.getSubModule()).toString();
             File s3File = ImStorageUtil.moveFile(new File(fileTopicMsgBO.getSourceFilePath()), s3Dir, new File(fileTopicMsgBO.getSourceFilePath()).getName());
             fileRecord.setS3FileName(s3File.getPath());
             fileRecord.setFileMd5(descParseBO.md5());

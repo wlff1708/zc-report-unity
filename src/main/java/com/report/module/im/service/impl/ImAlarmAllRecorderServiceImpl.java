@@ -1,5 +1,6 @@
 package com.report.module.im.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.report.module.im.mapper.ImAlarmAllRecorderMapper;
 import com.report.module.im.pojo.bo.ImAlarmRecordBO;
@@ -25,5 +26,19 @@ public class ImAlarmAllRecorderServiceImpl extends ServiceImpl<ImAlarmAllRecorde
     @Transactional(rollbackFor = Exception.class)
     public void batchSaveRecords(List<ImAlarmRecordBO> boList) {
         saveBatch(imAlarmRecordConverter.toEntityList(boList), 1024);
+    }
+
+    @Override
+    public List<ImAlarmRecordBO> listByAlarmId(String alarmId) {
+        LambdaQueryWrapper<ImAlarmAllRecorderEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ImAlarmAllRecorderEntity::getAlarmId, alarmId);
+        return imAlarmRecordConverter.toBOList(list(wrapper));
+    }
+
+    @Override
+    public void removeByAlarmId(String alarmId) {
+        LambdaQueryWrapper<ImAlarmAllRecorderEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ImAlarmAllRecorderEntity::getAlarmId, alarmId);
+        remove(wrapper);
     }
 }

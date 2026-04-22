@@ -6,7 +6,7 @@ import lombok.Getter;
  * 告警记录类型
  */
 @Getter
-public enum ImAlarmRecordType {
+public enum ImAlarmRecordTypeEnum {
 
     /**
      * 源文件
@@ -23,7 +23,7 @@ public enum ImAlarmRecordType {
 
     private final int code;
 
-    ImAlarmRecordType(int code) {
+    ImAlarmRecordTypeEnum(int code) {
         this.code = code;
     }
 }

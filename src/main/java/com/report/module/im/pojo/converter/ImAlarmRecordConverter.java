@@ -15,4 +15,8 @@ public interface ImAlarmRecordConverter {
     ImAlarmAllRecorderEntity toEntity(ImAlarmRecordBO bo);
 
     List<ImAlarmAllRecorderEntity> toEntityList(List<ImAlarmRecordBO> boList);
+
+    ImAlarmRecordBO toBO(ImAlarmAllRecorderEntity entity);
+
+    List<ImAlarmRecordBO> toBOList(List<ImAlarmAllRecorderEntity> entityList);
 }
