@@ -8,6 +8,7 @@ import com.report.module.im.pojo.dto.ImKafkaListenDataDTO;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.kafka.listener.MessageListenerContainer;
 
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.function.Predicate;
  *文件 Listener（dataType=file）
  */
 @Configuration
+@DependsOn("imInitRunner")
 public class ImFileListener extends ImAbstractListener {
 
     @Resource

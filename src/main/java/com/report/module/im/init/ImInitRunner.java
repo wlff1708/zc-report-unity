@@ -7,8 +7,8 @@ import com.report.module.im.constants.ImDictTypeConstants;
 import com.report.module.im.pojo.bo.ImTopicInfoBO;
 import com.report.module.im.service.ImAlarmUrlModuleService;
 import com.report.module.im.service.ImSysDictService;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,7 +17,7 @@ import java.util.List;
  * 初始化配置
  */
 @Component
-public class ImInitRunner implements CommandLineRunner {
+public class ImInitRunner {
 
     @Resource
     private ImAlarmUrlModuleService imAlarmUrlModuleService;
@@ -28,8 +28,8 @@ public class ImInitRunner implements CommandLineRunner {
     @Resource
     private ImProperties imPathProperties;
 
-    @Override
-    public void run(String... args) {
+    @PostConstruct
+    void init() {
         // 缓存设置
         initCache();
 
