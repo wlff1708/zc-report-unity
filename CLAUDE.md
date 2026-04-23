@@ -16,6 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Filter/Interceptor/Init/配置/工具类/注释日志 | 六、工程约束 |
 | 编写测试用例 | 七、单元测试规范 |
 
+**注释规范重点（详见 `doc/项目规范.md` 六、6.4 节）：** 代码注释必须详尽，包括步骤标记、WHY 注释、变量用途注释、操作意图注释。执行 simplify 等代码优化操作时，不得将这些业务注释视为冗余而删除。
+
 ## Build & Run
 
 ```bash

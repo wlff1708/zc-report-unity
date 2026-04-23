@@ -9,6 +9,7 @@ import com.report.module.im.enums.ImAlarmStorageResultEnum;
 import com.report.module.im.pojo.bo.ImAlarmRecordBO;
 import com.report.module.im.pojo.dto.ImKafkaListenDataDTO;
 import com.report.module.im.service.ImAlarmAllRecorderService;
+import com.report.module.im.util.ImStorageUtil;
 import com.report.module.im.util.shell.ImShellUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -19,10 +20,13 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -63,9 +67,39 @@ public class AlarmFileTest extends BaseTest {
     })
     @DisplayName("测试新标准下的告警文件处理")
     public void testNewStandard(String module, String subModule) throws Exception {
-        Caches.set(ImCacheKeysName.STORAGE_STANDARD, true);
+        // 新标准：描述文件无后缀，源文件名 deviceId_checksum
+        testAlarmFile(module, subModule, true, "data/new/",
+                f -> f.contains(module + "_filedesc_"));
+    }
 
-        String sourceDataDir = "data/new/" + module + "/" + subModule;
+    @ParameterizedTest
+    @CsvSource({
+            "alarm, malware",
+            "alarm, trojan"
+    })
+    @DisplayName("测试老标准下的告警文件处理")
+    public void testOldStandard(String module, String subModule) throws Exception {
+        // 老标准：描述文件带 .txt 后缀，源文件名 deviceId_alarmId_checksum
+        testAlarmFile(module, subModule, false, "data/old/",
+                f -> f.contains(module + "_filedesc_") && f.endsWith(".txt"));
+    }
+
+    /**
+     * 告警文件处理通用测试方法
+     *
+     * @param module           父模块
+     * @param subModule        子模块
+     * @param storageStandard  落盘标准开关
+     * @param dataDirPrefix    数据源目录前缀（data/new/ 或 data/old/）
+     * @param descFileMatcher  描述文件匹配条件
+     */
+    private void testAlarmFile(String module, String subModule,
+                               boolean storageStandard, String dataDirPrefix,
+                               Predicate<String> descFileMatcher) throws Exception {
+        Caches.set(ImCacheKeysName.STORAGE_STANDARD, storageStandard);
+
+        // 读取测试数据
+        String sourceDataDir = dataDirPrefix + module + "/" + subModule;
         AlarmTestBO alarmTestBO = readFileContent(sourceDataDir);
 
         // 收集 alarmId 并清理旧数据
@@ -75,6 +109,38 @@ public class AlarmFileTest extends BaseTest {
         }
 
         // 为每条告警描述构造 DTO，复制源文件到临时目录
+        List<ImKafkaListenDataDTO> dataList = buildDTOList(alarmTestBO, module, subModule);
+
+        // 执行业务处理
+        imKafkaFileBusiness.handle(dataList);
+
+        // 验证数据库记录
+        verifyDbRecords(alarmTestBO);
+
+        // 验证落盘文件
+        String s3Path = Caches.get(ImCacheKeysName.S3_PATH);
+        String dir = s3Path + "/" + module;
+        String findResult = ImShellUtil.execSimple("ls", dir);
+        List<String> files = List.of(findResult.split("\n"));
+        logFiles(dir, files);
+
+        // 描述文件断言
+        assertEquals(1, files.stream().filter(descFileMatcher).count());
+
+        // 源文件断言：is_upload=false 的才落盘
+        long expectedSourceCount = alarmTestBO.getAlarmDescList().stream()
+                .filter(d -> !d.isUpload()).count();
+        String sourceFileNamePattern = buildSourceFileNamePattern(alarmTestBO, storageStandard);
+        assertEquals(expectedSourceCount, files.stream()
+                .filter(f -> !f.contains("_filedesc_"))
+                .filter(f -> f.contains(sourceFileNamePattern))
+                .count());
+    }
+
+    /**
+     * 构造 DTO 列表，每条告警描述对应一个 DTO
+     */
+    private List<ImKafkaListenDataDTO> buildDTOList(AlarmTestBO alarmTestBO, String module, String subModule) throws Exception {
         List<ImKafkaListenDataDTO> dataList = new ArrayList<>();
         for (AlarmDescTestBO desc : alarmTestBO.getAlarmDescList()) {
             ImKafkaListenDataDTO dto = new ImKafkaListenDataDTO();
@@ -84,20 +150,24 @@ public class AlarmFileTest extends BaseTest {
             dto.setDataType("file");
             dto.setData(desc.getMetaData());
 
+            // 复制源文件到临时目录
             Path srcPath = Path.of(this.getClass().getClassLoader().getResource(alarmTestBO.getAlarmFilePath()).getPath());
             String fileName = srcPath.getFileName().toString();
-            Path tmpFile = tempDir.resolve("source").resolve(desc.getAlarmId() + "_" + fileName);
+            Path tmpFile = tempDir.resolve("source").resolve(fileName);
             Files.createDirectories(tmpFile.getParent());
-            Files.copy(srcPath, tmpFile);
+            Files.copy(srcPath, tmpFile, StandardCopyOption.REPLACE_EXISTING);
             dto.setFilePath(tmpFile.toString());
             dto.setS2ReportModule(false);
             dto.setJs2ReportModule(false);
             dataList.add(dto);
         }
+        return dataList;
+    }
 
-        imKafkaFileBusiness.handle(dataList);
-
-        // 验证数据库记录
+    /**
+     * 验证数据库记录：每条告警应有 1 条源文件记录 + 1 条描述记录
+     */
+    private void verifyDbRecords(AlarmTestBO alarmTestBO) {
         for (int i = 0; i < alarmTestBO.getAlarmDataList().size(); i++) {
             AlarmDataTestBO data = alarmTestBO.getAlarmDataList().get(i);
             AlarmDescTestBO desc = alarmTestBO.getAlarmDescList().get(i);
@@ -118,26 +188,44 @@ public class AlarmFileTest extends BaseTest {
                     .filter(r -> ImAlarmRecordTypeEnum.DESC_FILE.getCode() == r.getAlarmType())
                     .allMatch(r -> ImAlarmStorageResultEnum.SUCCESS.getDesc().equals(r.getStorageResult())));
         }
+    }
 
-        // 验证落盘文件
-        String s3Path = Caches.get(ImCacheKeysName.S3_PATH);
-        String dir = s3Path + "/" + module + "/" + subModule;
-        String findResult = ImShellUtil.execSimple("ls", dir);
-        List<String> files = List.of(findResult.split("\n"));
-        files.forEach(filename -> log.info("落盘文件: {}", filename));
+    /**
+     * 打印落盘文件信息：源文件大小 + 描述文件内容
+     */
+    private void logFiles(String dir, List<String> files) {
+        files.forEach(filename -> {
+            log.info("落盘文件: {}", filename);
+            // 打印源文件大小
+            if (!filename.contains("_filedesc_")) {
+                File sourceFile = new File(dir, filename);
+                log.info("源文件大小: {} KB", ImStorageUtil.calculateFileSize(sourceFile));
+            }
+            // 打印描述文件内容
+            if (filename.contains("_filedesc_")) {
+                try {
+                    String descContent = Files.readString(Path.of(dir, filename));
+                    log.info("描述文件内容:\n{}", descContent);
+                } catch (Exception e) {
+                    log.error("读取描述文件失败", e);
+                }
+            }
+        });
+    }
 
-        // 描述文件 1 个（同子模块合并落盘）
-        assertEquals(1, files.stream().filter(f -> f.contains(module + "_filedesc_")).count());
-
-        // 源文件：is_upload=false 的才落盘，文件名包含 deviceId_checksum
-        long expectedSourceCount = alarmTestBO.getAlarmDescList().stream()
-                .filter(d -> !d.isUpload()).count();
+    /**
+     * 构建源文件名匹配模式
+     * 新标准：deviceId_checksum
+     * 老标准：deviceId_alarmId_checksum
+     */
+    private String buildSourceFileNamePattern(AlarmTestBO alarmTestBO, boolean storageStandard) {
         String deviceId = alarmTestBO.getDeviceId();
         String checksum = alarmTestBO.getAlarmDescList().get(0).getMd5();
-        assertEquals(expectedSourceCount, files.stream()
-                .filter(f -> !f.contains("_filedesc_"))
-                .filter(f -> f.contains(deviceId + "_" + checksum))
-                .count());
+        if (storageStandard) {
+            return deviceId + "_" + checksum;
+        }
+        String alarmId = alarmTestBO.getAlarmDataList().get(0).getAlarmId();
+        return deviceId + "_" + alarmId + "_" + checksum;
     }
 
 }

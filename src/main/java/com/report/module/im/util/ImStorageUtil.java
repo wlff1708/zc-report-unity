@@ -115,6 +115,21 @@ public class ImStorageUtil {
     }
 
     /**
+     * 根据落盘标准开关，选择新/老标准构造告警描述
+     *
+     * @param storageStandard 落盘标准开关
+     * @param userAgent 设备UA字符串，新标准从中提取deviceId，老标准直接拼入头部
+     * @param desc      描述信息（JSON格式），新标准会格式化后写入正文
+     * @return 按当前标准拼接完成的落盘数据字符串
+     */
+    public static String buildAlarmDescDependsStandard(boolean storageStandard, String userAgent, String desc) {
+        return storageStandard
+                ? buildNewStandardDesc(ImUserAgentUtil.getDeviceId(userAgent), desc)
+                : buildOldStandardDesc(userAgent, desc);
+    }
+
+
+    /**
      * 新标准格式构造：分隔线 + Device-ID + Content-Filedesc + JSON格式化数据
      *
      * @param deviceId 设备编号
@@ -143,21 +158,50 @@ public class ImStorageUtil {
                 + OldStd.TAIL_SEP;
     }
 
+
     /**
-     * 新标准告警描述临时文件路径：{tmp}/{module}/{subModule}/{module}_filedesc_{random}_{timestamp}
+     * 根据落盘标准开关，构造告警描述临时文件路径
+     *
+     * @param baseTmpPath 临时目录
+     * @param moduleType    父模块类型
+     * @return 告警描述临时文件的完整路径
+     */
+    public static String buildAlarmDescTmpPathDependsStandard(boolean storageStandard, String baseTmpPath, String moduleType) {
+        return storageStandard
+                ? buildNewAlarmDescTmpPath(baseTmpPath, moduleType)
+                : buildOldAlarmDescTmpPath(baseTmpPath, moduleType);
+    }
+
+    /**
+     * 新标准告警描述临时文件路径：{tmp}/{module}/{module}_filedesc_{random}_{timestamp}
      *
      * @param baseTmpPath    临时目录
      * @param moduleType    父模块类型
-     * @param subModuleType 子模块类型Co
      * @return 新标准告警描述临时文件完整路径
      */
-    public static String buildNewAlarmDescTmpPath(String baseTmpPath, String moduleType, String subModuleType) {
-        String dir = Path.of(baseTmpPath, moduleType, subModuleType).toString();
+    public static String buildNewAlarmDescTmpPath(String baseTmpPath, String moduleType) {
+        String dir = Path.of(baseTmpPath, moduleType).toString();
         String filename = String.join("_", moduleType, CommonStd.DESC_FILE_NAME_KEY,
                 String.valueOf(ThreadLocalRandom.current().nextInt(10000, 99999)),
                 String.valueOf(System.currentTimeMillis()));
         return Path.of(dir, filename).toString();
     }
+
+    /**
+     * 老标准告警描述临时文件路径：{tmp}/{module}/{module}_filedesc_{random}_{timestamp}.txt
+     *
+     * @param baseTmpPath    临时目录
+     * @param moduleType    父模块类型
+     * @return 老标准告警描述临时文件完整路径（带 .txt 后缀）
+     */
+    public static String buildOldAlarmDescTmpPath(String baseTmpPath, String moduleType) {
+        String dir = Path.of(baseTmpPath, moduleType).toString();
+        String filename = String.join("_", moduleType, CommonStd.DESC_FILE_NAME_KEY,
+                String.valueOf(ThreadLocalRandom.current().nextInt(10000, 99999)),
+                String.valueOf(System.currentTimeMillis())) + ".txt";
+        return Path.of(dir, filename).toString();
+    }
+
 
     /**
      * 计算文件大小
