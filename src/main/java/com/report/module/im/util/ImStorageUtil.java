@@ -34,7 +34,7 @@ public class ImStorageUtil {
         /**
          * 告警消息文件名中的标识 key
          */
-        public static final String DATA_FILE_NAME_KEY = "_data_";
+        public static final String DATA_FILE_NAME_KEY = "data";
 
         /**
          * 类型标识
@@ -201,6 +201,103 @@ public class ImStorageUtil {
                 String.valueOf(System.currentTimeMillis())) + ".txt";
         return Path.of(dir, filename).toString();
     }
+
+    /**
+     * 根据落盘标准开关，选择新/老标准构造告警消息
+     *
+     * @param storageStandard 落盘标准开关
+     * @param userAgent 设备UA字符串，新标准从中提取deviceId，老标准直接拼入头部
+     * @param module    父模块类型
+     * @param subModule 子模块类型
+     * @param data      告警数据
+     * @return 按当前标准拼接完成的落盘数据字符串
+     */
+    public static String buildAlarmDataDependsStandard(boolean storageStandard, String userAgent, String module, String subModule, String data) {
+        return storageStandard
+                ? buildNewStandardAlarmData(ImUserAgentUtil.getDeviceId(userAgent), subModule, data)
+                : buildOldStandardAlarmData(userAgent, module, subModule, data);
+    }
+
+    /**
+     * 新标准格式构造：分隔线 + Device-ID + 子模块类型 + JSON格式化数据
+     *
+     * @param deviceId  设备编号
+     * @param subModule 子模块类型
+     * @param data      告警数据
+     * @return 新标准格式的落盘数据
+     */
+    private static String buildNewStandardAlarmData(String deviceId, String subModule, String data) {
+        return NewStd.DELIMITER + CommonStd.LINE_SEP
+                + NewStd.DEVICE_ID + deviceId + CommonStd.LINE_SEP
+                + CommonStd.TYPE + subModule + CommonStd.LINE_SEP
+                + JSONUtil.formatJsonStr(data)
+                + CommonStd.LINE_SEP;
+    }
+
+    /**
+     * 旧标准格式构造：UserAgent + 模块类型(子模块) + 原始数据
+     *
+     * @param userAgent 用户代理信息
+     * @param module    父模块类型
+     * @param subModule 子模块类型
+     * @param data      告警数据
+     * @return 旧标准格式的落盘数据
+     */
+    private static String buildOldStandardAlarmData(String userAgent, String module, String subModule, String data) {
+        return OldStd.USER_AGENT + userAgent + CommonStd.LINE_SEP
+                + CommonStd.TYPE + module + "(" + subModule + ")" + CommonStd.LINE_SEP
+                + CommonStd.LINE_SEP
+                + data
+                + OldStd.TAIL_SEP;
+    }
+
+
+    /**
+     * 根据落盘标准开关，构造告警消息临时文件路径
+     *
+     * @param storageStandard  新标准落盘标准开关
+     * @param baseTmpPath  临时目录基础路径
+     * @param moduleType   父模块类型
+     * @return 告警消息临时文件的完整路径
+     */
+    public static String buildAlarmDataTmpPathDependsStandard(boolean storageStandard, String baseTmpPath, String moduleType) {
+        return storageStandard
+                ? buildNewAlarmDataTmpPath(baseTmpPath, moduleType)
+                : buildOldAlarmDataTmpPath(baseTmpPath, moduleType);
+    }
+
+    /**
+     * 旧标准临时文件路径：{TMP_PATH}/{moduleType}/{moduleType}_{DATA_FILE_NAME_KEY}_{random}_{timestamp}.txt
+     *
+     * @param tmpPathDir 临时目录路径
+     * @param moduleType    父模块类型
+     * @return 旧标准格式的临时文件完整路径
+     */
+    private static String buildOldAlarmDataTmpPath(String tmpPathDir, String moduleType) {
+        String dir = Path.of(tmpPathDir, moduleType).toString();
+        String filename = String.join("_", moduleType, CommonStd.DATA_FILE_NAME_KEY,
+                String.valueOf(ThreadLocalRandom.current().nextInt(10000, 99999)),
+                String.valueOf(System.currentTimeMillis())) + ".txt";
+        return Path.of(dir, filename).toString();
+    }
+
+    /**
+     * 新标准临时文件路径：{TMP_PATH}/{moduleType}/{moduleType}_{DATA_FILE_NAME_KEY}_{random}_{timestamp}
+     * <p>
+     * 与旧标准区别：不带 .txt 后缀
+     *
+     * @param tmpPathDir 临时目录路径
+     * @param moduleType    父模块类型
+     * @return 新标准格式的临时文件完整路径
+     */
+    private static String buildNewAlarmDataTmpPath(String tmpPathDir,String moduleType) {
+        String dir = Path.of(tmpPathDir, moduleType).toString();
+        String filename = String.join("_", moduleType, CommonStd.DATA_FILE_NAME_KEY,
+                String.valueOf(ThreadLocalRandom.current().nextInt(10000, 99999)),
+                String.valueOf(System.currentTimeMillis()));
+        return Path.of(dir, filename).toString();
+    }
+
 
 
     /**

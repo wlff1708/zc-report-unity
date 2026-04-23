@@ -118,9 +118,9 @@ public class ImDefaultAlarmFileTopicHandleStrategy implements ImHandleFileTopicS
 
         // 描述已落盘，继续填充描述记录对象
         descRecordList.forEach(descRecord -> {
-            descRecord.setTmpFileName(tmpDescFile.getName());
             descRecord.setS3FileName(s3DescFile.getName());
             descRecord.setFileMd5(SecureUtil.md5(s3DescFile));
+            descRecord.setTmpFileName(tmpDescFile.getName());
             descRecord.setFileSize(ImStorageUtil.calculateFileSize(s3DescFile));
             descRecord.setStorageResult(ImAlarmStorageResultEnum.SUCCESS.getDesc());
         });
