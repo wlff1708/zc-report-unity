@@ -31,7 +31,7 @@ public class ImDataListener extends ImAbstractListener {
 
     @Override
     protected CacheDef<List<ImTopicInfoBO>> topicCacheKey() {
-        return ImCacheKeysName.DATA_TOPICS;
+        return ImCacheKeysName.IM_DATA_TOPICS;
     }
 
     @Override

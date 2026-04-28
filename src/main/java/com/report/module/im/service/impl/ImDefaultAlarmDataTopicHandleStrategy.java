@@ -50,9 +50,9 @@ public class ImDefaultAlarmDataTopicHandleStrategy implements ImHandleDataTopicS
     }
 
     private void localDeal(ImDataDealBO dataDealBO) {
-        String s3path = Caches.get(ImCacheKeysName.S3_PATH);
-        String basePath = Caches.get(ImCacheKeysName.TMP_PATH);
-        Boolean storageStandard = Caches.get(ImCacheKeysName.STORAGE_STANDARD);
+        String s3path = Caches.get(ImCacheKeysName.IM_S3_PATH);
+        String basePath = Caches.get(ImCacheKeysName.IM_TMP_PATH);
+        Boolean storageStandard = Caches.get(ImCacheKeysName.IM_STORAGE_STANDARD);
 
         // 批量消息内容
         List<String> storageDataList = ListUtil.toList();

@@ -10,7 +10,6 @@ import com.report.module.im.enums.ImAlarmStorageResultEnum;
 import com.report.module.im.pojo.bo.ImAlarmRecordBO;
 import com.report.module.im.pojo.dto.ImKafkaListenDataDTO;
 import com.report.module.im.service.ImAlarmAllRecorderService;
-import com.report.module.im.util.ImStorageUtil;
 import com.report.module.im.util.ImUserAgentUtil;
 import jakarta.annotation.Resource;
 import lombok.Data;
@@ -50,8 +49,8 @@ public class AlarmDataTest extends BaseTest {
 
     @BeforeEach
     void setup() {
-        Caches.set(ImCacheKeysName.S3_PATH, tempDir.resolve("s3").toString());
-        Caches.set(ImCacheKeysName.TMP_PATH, tempDir.resolve("tmp").toString());
+        Caches.set(ImCacheKeysName.IM_S3_PATH, tempDir.resolve("s3").toString());
+        Caches.set(ImCacheKeysName.IM_TMP_PATH, tempDir.resolve("tmp").toString());
         currentAlarmIds.clear();
     }
 
@@ -96,7 +95,7 @@ public class AlarmDataTest extends BaseTest {
     private void testAlarmData(String module, String subModule,
                                boolean storageStandard, String dataDirPrefix,
                                Predicate<String> dataFileMatcher) throws Exception {
-        Caches.set(ImCacheKeysName.STORAGE_STANDARD, storageStandard);
+        Caches.set(ImCacheKeysName.IM_STORAGE_STANDARD, storageStandard);
 
         // 读取测试数据
         String sourceDataDir = dataDirPrefix + module + "/" + subModule;
@@ -118,7 +117,7 @@ public class AlarmDataTest extends BaseTest {
         verifyDbRecords(testData, storageStandard);
 
         // 验证落盘文件
-        String s3Path = Caches.get(ImCacheKeysName.S3_PATH);
+        String s3Path = Caches.get(ImCacheKeysName.IM_S3_PATH);
         String dir = s3Path + "/" + module;
         assertTrue(Files.exists(Path.of(dir)), "落盘目录应存在: " + dir);
 

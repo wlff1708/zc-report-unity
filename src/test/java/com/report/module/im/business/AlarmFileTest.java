@@ -1,7 +1,6 @@
 package com.report.module.im.business;
 
 import com.report.BaseTest;
-import com.report.BaseTest.*;
 import com.report.common.util.cache.Caches;
 import com.report.module.im.constants.ImCacheKeysName;
 import com.report.module.im.enums.ImAlarmRecordTypeEnum;
@@ -50,8 +49,8 @@ public class AlarmFileTest extends BaseTest {
 
     @BeforeEach
     void setup() {
-        Caches.set(ImCacheKeysName.S3_PATH, tempDir.resolve("s3").toString());
-        Caches.set(ImCacheKeysName.TMP_PATH, tempDir.resolve("tmp").toString());
+        Caches.set(ImCacheKeysName.IM_S3_PATH, tempDir.resolve("s3").toString());
+        Caches.set(ImCacheKeysName.IM_TMP_PATH, tempDir.resolve("tmp").toString());
         currentAlarmIds.clear();
     }
 
@@ -96,7 +95,7 @@ public class AlarmFileTest extends BaseTest {
     private void testAlarmFile(String module, String subModule,
                                boolean storageStandard, String dataDirPrefix,
                                Predicate<String> descFileMatcher) throws Exception {
-        Caches.set(ImCacheKeysName.STORAGE_STANDARD, storageStandard);
+        Caches.set(ImCacheKeysName.IM_STORAGE_STANDARD, storageStandard);
 
         // 读取测试数据
         String sourceDataDir = dataDirPrefix + module + "/" + subModule;
@@ -118,7 +117,7 @@ public class AlarmFileTest extends BaseTest {
         verifyDbRecords(alarmTestBO);
 
         // 验证落盘文件
-        String s3Path = Caches.get(ImCacheKeysName.S3_PATH);
+        String s3Path = Caches.get(ImCacheKeysName.IM_S3_PATH);
         String dir = s3Path + "/" + module;
         String findResult = ImShellUtil.execSimple("ls", dir);
         List<String> files = List.of(findResult.split("\n"));

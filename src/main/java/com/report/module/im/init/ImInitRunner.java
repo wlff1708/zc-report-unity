@@ -43,20 +43,20 @@ public class ImInitRunner {
 
     private void initCache() {
         // 落盘路径缓存
-        Caches.set(ImCacheKeysName.S3_PATH, imPathProperties.getPath().getS3Path());
-        Caches.set(ImCacheKeysName.TMP_PATH, imPathProperties.getPath().getTmpPath());
-        Caches.set(ImCacheKeysName.S2_PATH, imPathProperties.getPath().getS2Path());
-        Caches.set(ImCacheKeysName.JS2_PATH, imPathProperties.getPath().getJs2Path());
+        Caches.set(ImCacheKeysName.IM_S3_PATH, imPathProperties.getPath().getS3Path());
+        Caches.set(ImCacheKeysName.IM_TMP_PATH, imPathProperties.getPath().getTmpPath());
+        Caches.set(ImCacheKeysName.IM_S2_PATH, imPathProperties.getPath().getS2Path());
+        Caches.set(ImCacheKeysName.IM_JS2_PATH, imPathProperties.getPath().getJs2Path());
         // 落盘标准缓存
         String standard = imSysDictService.getValueByType(SysDict.INTRANET_DATE_TYPE);
-        Caches.set(ImCacheKeysName.STORAGE_STANDARD, SysDict.INTRANET_DATE_TYPE_ON.equals(standard));
+        Caches.set(ImCacheKeysName.IM_STORAGE_STANDARD, SysDict.INTRANET_DATE_TYPE_ON.equals(standard));
 
         // Kafka topic 缓存
         List<ImTopicInfoBO> allTopics = imAlarmUrlModuleService.getAllTopicInfo();
-        Caches.set(ImCacheKeysName.DATA_TOPICS, allTopics.stream()
+        Caches.set(ImCacheKeysName.IM_DATA_TOPICS, allTopics.stream()
                 .filter(t -> SysDict.DATA_TYPE_DATA.equals(t.dataType()))
                 .toList());
-        Caches.set(ImCacheKeysName.FILE_TOPICS, allTopics.stream()
+        Caches.set(ImCacheKeysName.IM_FILE_TOPICS, allTopics.stream()
                 .filter(t -> SysDict.DATA_TYPE_FILE.equals(t.dataType()))
                 .toList());
 

@@ -47,6 +47,8 @@ public class ImDefaultAlarmFileTopicHandleStrategy implements ImHandleFileTopicS
 
     @Override
     public void handle(ImFileDealBO fileDealBO) {
+        // todo 感觉还是要做个硬链接,下面这三步搞异步
+
         // 本级处理
         localDeal(fileDealBO);
         // 级联上报
@@ -61,19 +63,27 @@ public class ImDefaultAlarmFileTopicHandleStrategy implements ImHandleFileTopicS
 
     private void s2Deal(ImFileDealBO fileDealBO) {
         // 获取s2的上报路径
-        String s2Path = Caches.get(ImCacheKeysName.S2_PATH);
+        String s2Path = Caches.get(ImCacheKeysName.IM_S2_PATH);
+        // 获取s2上报url
+        String s2BaseUrl = Caches.get(ImCacheKeysName.IM_S2_BASE_URL);
+        // 获取本级的UA
+        String userAgent = Caches.get(ImCacheKeysName.IM_MC_USER_AGENT);
+        // 获取级联cookie
+        String cookie = Caches.get(ImCacheKeysName.IM_S2_COOKIE);
         // 按照子模块分组，然后上报
-        fileDealBO.fileTopicMsgBOList().stream().collect(Collectors.groupingBy(ImFileTopicMsgBO::getSubModule))
-                .forEach((subModule, fileTopicMsgBOList) -> {
-                    // 构建阶段：逐条构建，失败的单条记录但不影响其他
-                    List<MultipartFile> multipartFiles = new ArrayList<>();
-                    List<String> descList = new ArrayList<>();
-                    fileTopicMsgBOList.forEach(fileTopicMsgBO -> {
-                        MultipartFile multipartFile = ImStorageUtil.buildMultipartFile(s2Path, fileTopicMsgBO.getSourceFilePath());
-                        multipartFiles.add(multipartFile);
-                        descList.add(ImStorageUtil.buildS2ReportDesc(multipartFile.getName(), fileTopicMsgBO.getUserAgent(), fileTopicMsgBO.getFileDesc()));
-                    });
-                    // 接下来开始发送
+        fileDealBO.fileTopicMsgBOList().stream()
+                .collect(Collectors.groupingBy(ImFileTopicMsgBO::getSubModule)).forEach((subModule, fileTopicMsgBOList) -> {
+            // 构建阶段：逐条构建
+            List<MultipartFile> multipartFiles = new ArrayList<>();
+            List<String> descList = new ArrayList<>();
+            fileTopicMsgBOList.forEach(fileTopicMsgBO -> {
+                MultipartFile multipartFile = ImStorageUtil.buildMultipartFile(s2Path, fileTopicMsgBO.getSourceFilePath());
+                multipartFiles.add(multipartFile);
+                descList.add(ImStorageUtil.buildS2ReportDesc(multipartFile.getName(), fileTopicMsgBO.getUserAgent(), fileTopicMsgBO.getFileDesc()));
+            });
+            // 开始发送
+            reportExchange.alarmFileForward(s2BaseUrl, userAgent, cookie, fileDealBO.module(),
+                    subModule, String.join("#####", descList), null, multipartFiles);
         });
     }
 
@@ -99,11 +109,11 @@ public class ImDefaultAlarmFileTopicHandleStrategy implements ImHandleFileTopicS
 
     private List<ImAlarmRecordBO> storageAlarmDesc(String module, List<ImFileTopicMsgBO> imFileTopicMsgBOList) {
         // 获取临时文件路径
-        String basePath = Caches.get(ImCacheKeysName.TMP_PATH);
+        String basePath = Caches.get(ImCacheKeysName.IM_TMP_PATH);
         // 获取S3文件路径
-        String s3path = Caches.get(ImCacheKeysName.S3_PATH);
+        String s3path = Caches.get(ImCacheKeysName.IM_S3_PATH);
         // 获取落盘标准
-        Boolean storageStandard = Caches.get(ImCacheKeysName.STORAGE_STANDARD);
+        Boolean storageStandard = Caches.get(ImCacheKeysName.IM_STORAGE_STANDARD);
 
         // 构建新落盘内容
         // 批量描述处理对象
@@ -174,7 +184,7 @@ public class ImDefaultAlarmFileTopicHandleStrategy implements ImHandleFileTopicS
         } else {
             // 告警临时文件存在，迁移到 S3 正式目录
             File sourceFile = new File(fileTopicMsgBO.getSourceFilePath());
-            String s3Dir = Path.of(Caches.get(ImCacheKeysName.S3_PATH), fileTopicMsgBO.getModule()).toString();
+            String s3Dir = Path.of(Caches.get(ImCacheKeysName.IM_S3_PATH), fileTopicMsgBO.getModule()).toString();
             File s3File = ImStorageUtil.moveFile(sourceFile, s3Dir, sourceFile.getName());
             fileRecord.setS3FileName(s3File.getPath());
             fileRecord.setFileSize(ImStorageUtil.calculateFileSize(s3File));

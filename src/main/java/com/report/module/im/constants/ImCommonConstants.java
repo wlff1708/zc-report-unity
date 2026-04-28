@@ -13,8 +13,6 @@ public class ImCommonConstants {
         public static final String INTRANET_DATE_TYPE = "intranet_date_type";
         /** S3落盘新标准标识 */
         public static final String INTRANET_DATE_TYPE_ON = "on";
-        /** S3落盘老标准标识 */
-        public static final String INTRANET_DATE_TYPE_OFF = "off";
         /** 数据类型-消息 */
         public static final String DATA_TYPE_DATA = "data";
         /** 数据类型-文件 */
