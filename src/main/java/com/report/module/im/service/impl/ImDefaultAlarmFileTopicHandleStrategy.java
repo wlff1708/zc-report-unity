@@ -8,6 +8,7 @@ import com.report.common.util.cache.Caches;
 import com.report.module.im.constants.ImCacheKeysName;
 import com.report.module.im.enums.ImAlarmRecordTypeEnum;
 import com.report.module.im.enums.ImAlarmStorageResultEnum;
+import com.report.module.im.exchange.IMReportExchange;
 import com.report.module.im.pojo.bo.ImAlarmDescParseBO;
 import com.report.module.im.pojo.bo.ImAlarmRecordBO;
 import com.report.module.im.pojo.bo.ImFileDealBO;
@@ -40,6 +41,9 @@ public class ImDefaultAlarmFileTopicHandleStrategy implements ImHandleFileTopicS
 
     @Resource
     private ImAlarmAllRecorderService imAlarmAllRecorderService;
+
+    @Resource
+    private IMReportExchange reportExchange;
 
     @Override
     public void handle(ImFileDealBO fileDealBO) {

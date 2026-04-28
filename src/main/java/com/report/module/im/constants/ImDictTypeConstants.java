@@ -1,7 +1,7 @@
 package com.report.module.im.constants;
 
 /**
- * 字典类型常量
+ * IM 模块常量集中声明
  */
 public class ImDictTypeConstants {
 
@@ -19,4 +19,17 @@ public class ImDictTypeConstants {
 
     /** 数据类型-文件 */
     public static final String DATA_TYPE_FILE = "file";
+
+    /**
+     * 级联上报 HTTP 接口常量域
+     */
+    public static final class Exchange {
+        public static final String HEADER_USER_AGENT = "User-Agent";
+        public static final String HEADER_COOKIE_SESSION = "Cookie";
+        public static final String HEADER_CONTENT_FILEDESC = "Content-FileDesc";
+        public static final String HEADER_ALARM_FILE_COUNT = "Alarm-File-Count";
+        public static final String HEADER_ALARM_COUNT = "Alarm-Count";
+        public static final String PARAM_MODULE = "module";
+        public static final String PARAM_FILE = "file";
+    }
 }

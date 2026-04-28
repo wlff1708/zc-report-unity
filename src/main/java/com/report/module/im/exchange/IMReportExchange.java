@@ -1,5 +1,6 @@
 package com.report.module.im.exchange;
 
+import com.report.module.im.constants.ImDictTypeConstants.Exchange;
 import com.report.module.im.pojo.vo.S2ReportResultVo;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,7 +18,7 @@ import java.util.List;
  * @HttpExchange url 用于动态指定上级MC地址
  */
 @HttpExchange
-public interface IMReportExchange extends IMReportExchangeConstant {
+public interface IMReportExchange {
 
     /**
      * 上报告警文件（级联转发）
@@ -35,13 +36,13 @@ public interface IMReportExchange extends IMReportExchangeConstant {
     @PostExchange(url = "{baseUrl}/S2/V1/forward/file/alarm/{category}")
     ResponseEntity<S2ReportResultVo> alarmFileForward(
             @PathVariable("baseUrl") String baseUrl,
-            @RequestHeader(HEADER_USER_AGENT) String userAgent,
-            @RequestHeader(COOKIE_SESSION) String cookie,
+            @RequestHeader(Exchange.HEADER_USER_AGENT) String userAgent,
+            @RequestHeader(Exchange.HEADER_COOKIE_SESSION) String cookie,
             @PathVariable("category") String category,
-            @RequestParam(PARAM_MODULE) String module,
-            @RequestHeader(HEADER_CONTENT_FILEDESC) String alarmFileDescList,
-            @RequestHeader(value = HEADER_ALARM_FILE_COUNT, required = false) String alarmFileCountJsonObj,
-            @RequestParam(value = PARAM_FILE, required = false) List<MultipartFile> files);
+            @RequestParam(Exchange.PARAM_MODULE) String module,
+            @RequestHeader(Exchange.HEADER_CONTENT_FILEDESC) String alarmFileDescList,
+            @RequestHeader(value = Exchange.HEADER_ALARM_FILE_COUNT, required = false) String alarmFileCountJsonObj,
+            @RequestParam(value = Exchange.PARAM_FILE, required = false) List<MultipartFile> files);
 
     /**
      * 上报告警消息（级联转发）
@@ -57,9 +58,9 @@ public interface IMReportExchange extends IMReportExchangeConstant {
     @PostExchange(url = "{baseUrl}/S2/V1/forward/alarm/{category}")
     ResponseEntity<S2ReportResultVo> alarmForward(
             @PathVariable("baseUrl") String baseUrl,
-            @RequestHeader(HEADER_USER_AGENT) String userAgent,
-            @RequestHeader(COOKIE_SESSION) String cookie,
+            @RequestHeader(Exchange.HEADER_USER_AGENT) String userAgent,
+            @RequestHeader(Exchange.HEADER_COOKIE_SESSION) String cookie,
             @PathVariable("category") String category,
-            @RequestHeader(value = HEADER_ALARM_COUNT, required = false) String alarmCountJsonObj,
-            @RequestParam(value = PARAM_FILE, required = false) List<MultipartFile> files);
+            @RequestHeader(value = Exchange.HEADER_ALARM_COUNT, required = false) String alarmCountJsonObj,
+            @RequestParam(value = Exchange.PARAM_FILE, required = false) List<MultipartFile> files);
 }
