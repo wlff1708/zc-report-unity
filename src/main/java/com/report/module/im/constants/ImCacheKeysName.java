@@ -27,6 +27,9 @@ public class ImCacheKeysName {
     /** 级联上报文件存储根路径 */
     public static final CacheDef<String> S2_PATH = CacheDef.local("local:path:s2");
 
+    /** 级联上报上级MC地址 */
+    public static final CacheDef<String> IM_S2_BASE_URL = CacheDef.local("im:s2:base:url");
+
     /** 指调上报文件存储根路径 */
     public static final CacheDef<String> JS2_PATH = CacheDef.local("local:path:js2");
 
