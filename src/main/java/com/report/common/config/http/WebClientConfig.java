@@ -1,4 +1,4 @@
-package com.report.module.im.config.http;
+package com.report.common.config.http;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

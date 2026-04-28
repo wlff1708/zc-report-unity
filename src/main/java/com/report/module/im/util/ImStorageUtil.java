@@ -4,6 +4,8 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.json.JSONUtil;
+import com.report.common.config.file.CustomMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -308,6 +310,28 @@ public class ImStorageUtil {
      */
     public static BigDecimal calculateFileSize(File file) {
         return NumberUtil.round(file.length() / 1024.0, 3);
+    }
+
+    /**
+     * 构造单条告警的上传文件
+     * 文件路径存在则直接引用，丢失则在固定目录创建随机文件占位
+     *
+     * @param baseDir   临时目录基础路径
+     * @param filePath  文件路径
+     * @return 文件构造结果，temp=true 表示需要发送后清理
+     */
+    public static MultipartFile buildMultipartFile(String baseDir, String filePath) {
+        return CustomMultipartFile.fromPath(baseDir, filePath);
+    }
+
+    /**
+     * 拼接单条告警文件描述
+     *
+     * <p>格式：路由#####文件名#####设备UA#####描述JSON
+     */
+    public static String buildS2ReportDesc(String filePath, String userAgent, String desc) {
+        String alarmRoute = "0.1.0.0";
+        return String.join("#####", alarmRoute, filePath, userAgent, desc);
     }
 
 

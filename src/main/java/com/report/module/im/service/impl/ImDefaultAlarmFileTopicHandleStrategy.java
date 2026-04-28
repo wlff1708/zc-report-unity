@@ -20,10 +20,13 @@ import com.report.module.im.util.ImUserAgentUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -53,6 +56,21 @@ public class ImDefaultAlarmFileTopicHandleStrategy implements ImHandleFileTopicS
     }
 
     private void s2Deal(ImFileDealBO fileDealBO) {
+        // 获取s2的上报路径
+        String s2Path = Caches.get(ImCacheKeysName.S2_PATH);
+        // 按照子模块分组，然后上报
+        fileDealBO.fileTopicMsgBOList().stream().collect(Collectors.groupingBy(ImFileTopicMsgBO::getSubModule))
+                .forEach((subModule, fileTopicMsgBOList) -> {
+                    // 构建阶段：逐条构建，失败的单条记录但不影响其他
+                    List<MultipartFile> multipartFiles = new ArrayList<>();
+                    List<String> descList = new ArrayList<>();
+                    fileTopicMsgBOList.forEach(fileTopicMsgBO -> {
+                        MultipartFile multipartFile = ImStorageUtil.buildMultipartFile(s2Path, fileTopicMsgBO.getSourceFilePath());
+                        multipartFiles.add(multipartFile);
+                        descList.add(ImStorageUtil.buildS2ReportDesc(multipartFile.getName(), fileTopicMsgBO.getUserAgent(), fileTopicMsgBO.getFileDesc()));
+                    });
+                    // 接下来开始发送
+        });
     }
 
     private void localDeal(ImFileDealBO fileDealBO) {
