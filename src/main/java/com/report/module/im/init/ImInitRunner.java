@@ -3,7 +3,7 @@ package com.report.module.im.init;
 import com.report.common.util.cache.Caches;
 import com.report.module.im.config.ImProperties;
 import com.report.module.im.constants.ImCacheKeysName;
-import com.report.module.im.constants.ImDictTypeConstants;
+import com.report.module.im.constants.ImCommonConstants.SysDict;
 import com.report.module.im.pojo.bo.ImTopicInfoBO;
 import com.report.module.im.service.ImAlarmUrlModuleService;
 import com.report.module.im.service.ImSysDictService;
@@ -48,16 +48,16 @@ public class ImInitRunner {
         Caches.set(ImCacheKeysName.S2_PATH, imPathProperties.getPath().getS2Path());
         Caches.set(ImCacheKeysName.JS2_PATH, imPathProperties.getPath().getJs2Path());
         // 落盘标准缓存
-        String standard = imSysDictService.getValueByType(ImDictTypeConstants.INTRANET_DATE_TYPE);
-        Caches.set(ImCacheKeysName.STORAGE_STANDARD, ImDictTypeConstants.INTRANET_DATE_TYPE_ON.equals(standard));
+        String standard = imSysDictService.getValueByType(SysDict.INTRANET_DATE_TYPE);
+        Caches.set(ImCacheKeysName.STORAGE_STANDARD, SysDict.INTRANET_DATE_TYPE_ON.equals(standard));
 
         // Kafka topic 缓存
         List<ImTopicInfoBO> allTopics = imAlarmUrlModuleService.getAllTopicInfo();
         Caches.set(ImCacheKeysName.DATA_TOPICS, allTopics.stream()
-                .filter(t -> ImDictTypeConstants.DATA_TYPE_DATA.equals(t.dataType()))
+                .filter(t -> SysDict.DATA_TYPE_DATA.equals(t.dataType()))
                 .toList());
         Caches.set(ImCacheKeysName.FILE_TOPICS, allTopics.stream()
-                .filter(t -> ImDictTypeConstants.DATA_TYPE_FILE.equals(t.dataType()))
+                .filter(t -> SysDict.DATA_TYPE_FILE.equals(t.dataType()))
                 .toList());
 
     }
