@@ -1,5 +1,6 @@
 package com.report.module.im.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
@@ -9,10 +10,7 @@ import com.report.module.im.constants.ImCacheKeysName;
 import com.report.module.im.enums.ImAlarmRecordTypeEnum;
 import com.report.module.im.enums.ImAlarmStorageResultEnum;
 import com.report.module.im.exchange.IMReportExchange;
-import com.report.module.im.pojo.bo.ImAlarmDescParseBO;
-import com.report.module.im.pojo.bo.ImAlarmRecordBO;
-import com.report.module.im.pojo.bo.ImFileDealBO;
-import com.report.module.im.pojo.bo.ImFileTopicMsgBO;
+import com.report.module.im.pojo.bo.*;
 import com.report.module.im.service.ImAlarmAllRecorderService;
 import com.report.module.im.service.ImHandleFileTopicStrategy;
 import com.report.module.im.util.ImAlarmUtil;
@@ -47,18 +45,92 @@ public class ImDefaultAlarmFileTopicHandleStrategy implements ImHandleFileTopicS
 
     @Override
     public void handle(ImFileDealBO fileDealBO) {
-        // todo 感觉还是要做个硬链接,下面这三步搞异步
-
+        // 构造级联和指调的处理对象
+        ImFileDealForReportBO fileDealForReportBO = splitForReport(fileDealBO);
         // 本级处理
         localDeal(fileDealBO);
         // 级联上报
-        s2Deal(fileDealBO);
+        s2Deal(fileDealForReportBO.s2DealBO());
         // 指调上报
-        js2Deal(fileDealBO);
+        js2Deal(fileDealForReportBO.js2DealBO());
     }
 
-    private void js2Deal(ImFileDealBO fileDealBO) {
+    private ImFileDealForReportBO splitForReport(ImFileDealBO fileDealBO) {
+        // 获取s2和js2的缓存路径
+        String s2Path = Caches.get(ImCacheKeysName.IM_S2_PATH);
+        String js2Path = Caches.get(ImCacheKeysName.IM_JS2_PATH);
 
+        // s2和js2的文件处理列表
+        List<ImFileTopicMsgBO> s2MsgList = new ArrayList<>();
+        List<ImFileTopicMsgBO> js2MsgList = new ArrayList<>();
+
+        for (ImFileTopicMsgBO msgBO : fileDealBO.fileTopicMsgBOList()) {
+            ImAlarmDescParseBO descParseBO = ImAlarmUtil.parse(msgBO.getFileDesc());
+            String sourceFilePath = msgBO.getSourceFilePath();
+
+            // 第一次上传但无文件，剔除并记录日志
+            if (!descParseBO.upload() && !FileUtil.exist(sourceFilePath)) {
+                log.warn("[IM] 第一次上传但文件不存在，忽略，alarmId={}, deviceId={}",
+                        descParseBO.alarmId(), ImUserAgentUtil.getDeviceId(msgBO.getUserAgent()));
+                continue;
+            }
+
+            // 根据模块标记处理上报
+            appendReportMsg(msgBO, descParseBO, sourceFilePath, msgBO.getS2ReportModule(), s2Path, s2MsgList);
+            appendReportMsg(msgBO, descParseBO, sourceFilePath, msgBO.getJs2ReportModule(), js2Path, js2MsgList);
+        }
+
+        return new ImFileDealForReportBO(
+                new ImFileDealBO(fileDealBO.module(), s2MsgList),
+                new ImFileDealBO(fileDealBO.module(), js2MsgList)
+        );
+    }
+
+    /**
+     * 根据模块标记追加上报消息
+     *
+     * @param msgBO          原始消息
+     * @param descParseBO    解析后的描述
+     * @param sourceFilePath  源文件路径
+     * @param reportModule   是否上报该模块
+     * @param baseDir        硬链接目标目录
+     * @param targetList     目标列表
+     */
+    private void appendReportMsg(ImFileTopicMsgBO msgBO, ImAlarmDescParseBO descParseBO,
+                                 String sourceFilePath, Boolean reportModule, String baseDir,
+                                 List<ImFileTopicMsgBO> targetList) {
+        if (!Boolean.TRUE.equals(reportModule)) {
+            return;
+        }
+        ImFileTopicMsgBO copy = BeanUtil.copyProperties(msgBO, ImFileTopicMsgBO.class);
+        // 重复上传不创建硬链接
+        if (descParseBO.upload()) {
+            copy.setSourceFilePath(null);
+        } else {
+            copy.setSourceFilePath(ImStorageUtil.createHardLink(sourceFilePath, baseDir));
+        }
+        targetList.add(copy);
+    }
+
+    /**
+     * 指调上报处理：将告警文件信息写入关联表，等定时任务匹配消息后上报 JS2
+     */
+    private void js2Deal(ImFileDealBO fileDealBO) {
+        String module = fileDealBO.module();
+        String clusterNo = Caches.get(ImCacheKeysName.CLUSTER_NO);
+        List<ImAlarmJs2CorrelationBO> js2CorrelationBOList = ListUtil.toList();
+        fileDealBO.fileTopicMsgBOList().forEach(fileTopicMsgBO -> {
+            // 告警描述解析
+            ImAlarmDescParseBO descParseBO = ImAlarmUtil.parse(fileTopicMsgBO.getFileDesc());
+            ImAlarmJs2CorrelationBO js2CorrelationBO = new ImAlarmJs2CorrelationBO();
+            js2CorrelationBO.setDeviceId(ImUserAgentUtil.getDeviceId(fileTopicMsgBO.getUserAgent()));
+            js2CorrelationBO.setAlarmId(Integer.parseInt(descParseBO.alarmId()));
+            js2CorrelationBO.setDataType(ImAlarmRecordTypeEnum.SOURCE_FILE.getCode());
+            js2CorrelationBO.setMetaData(fileTopicMsgBO.getFileDesc());
+            js2CorrelationBO.setAlarmModule(module);
+            js2CorrelationBO.setAlarmSubModule(fileTopicMsgBO.getSubModule());
+            js2CorrelationBO.setClusterNo(clusterNo);
+        });
     }
 
     private void s2Deal(ImFileDealBO fileDealBO) {

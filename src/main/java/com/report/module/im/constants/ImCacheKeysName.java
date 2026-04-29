@@ -18,7 +18,8 @@ public class ImCacheKeysName {
     /** 文件类 topic 列表（data_type=file），从 v1_alarm_url_module 查库加载 */
     public static final CacheDef<List<ImTopicInfoBO>> IM_FILE_TOPICS = CacheDef.local("local:topics:file");
 
-
+    /** 集群节点编号，从配置文件 McLocal.local.clusterNo 加载 */
+    public static final CacheDef<String> CLUSTER_NO = CacheDef.local("cluster:no");
 
     /** 本级落盘文件存储临时路径 */
     public static final CacheDef<String> IM_TMP_PATH = CacheDef.local("local:path:tmp");

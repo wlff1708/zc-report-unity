@@ -334,5 +334,25 @@ public class ImStorageUtil {
         return String.join("#####", alarmRoute, filePath, userAgent, desc);
     }
 
+    /**
+     * 创建硬链接
+     *
+     * @param sourcePath 源文件路径
+     * @param targetDir  目标目录
+     * @return 硬链接后的文件路径
+     */
+    public static String createHardLink(String sourcePath, String targetDir) {
+        File sourceFile = FileUtil.file(sourcePath);
+        File targetDirFile = FileUtil.file(targetDir);
+        FileUtil.mkParentDirs(targetDirFile);
+        Path hardLinkPath = targetDirFile.toPath().resolve(sourceFile.getName());
+        try {
+            Files.createLink(hardLinkPath, sourceFile.toPath());
+        } catch (IOException e) {
+            throw new IORuntimeException(e);
+        }
+        return hardLinkPath.toString();
+    }
+
 
 }
